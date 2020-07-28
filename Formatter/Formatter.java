@@ -12,17 +12,51 @@ import slika.Slika;
 public abstract class Formatter {
 	
 	protected Layer sloj;
+	protected Slika slika; // treba za XMLFormatter
 	public enum MoguciFormati {GRESKA, bmp, pam, xml};
 	
 	public Formatter()
 	{
 		sloj = null;
+		slika = null;
 	}
 	public abstract void ucitaj(String putanja) throws GNePostojiFajl;
 	public abstract void sacuvaj(String putanja, Slika slika);
 	public Layer getLayer()
 	{
 		return sloj;
+	}
+	
+	/**
+	 * Konvertovanje niza od 4 bajta u int
+	 * @param b - niz bajtova
+	 * @return
+	 */
+	protected static int byteArrToInt(byte b[])
+	{
+		int broj = 0;
+		int stepen = 0;
+		for(int i = 0; i<b.length; i++)
+			{
+				broj = broj | (b[i] & 0xff) << stepen;
+				stepen+=8;
+			}
+		return broj;
+	}
+	
+	
+	/**
+	 * Konvertovanje broja u niz bajtova
+	 * @param num - broj
+	 * @param b - niz bajtova
+	 */
+	protected static void intToByteArr(int num, byte b[])
+	{
+		for(int i = 0; i < b.length; i++)
+		{
+			b[i] = (byte)(num & 0xff);
+			num = num >> 8;
+		}
 	}
 	
 	public static MoguciFormati nadjiFormatFajla(String putanja) throws GNePostojiFajl

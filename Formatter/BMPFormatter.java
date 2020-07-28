@@ -3,6 +3,7 @@ package Formatter;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.regex.*;
@@ -38,9 +39,9 @@ public class BMPFormatter extends Formatter{
 	
 	private class BMP32addition
 	{
-		byte red_mask[] = {0x00,0x00,(byte)0xff,0x00};
+		byte red_mask[] = {(byte)0xff,0x00,0x00,0x00};
 		byte green_mask[] = {0x00,(byte)0xff,0x00,0x00};
-		byte blue_mask[] = {(byte)0xff,0x00,0x00,0x00};
+		byte blue_mask[] = {0x00,0x00,(byte)0xff,0x00};
 		byte alpha_mask[] = {0x00,0x00,0x00,(byte)0xff};
 		byte unused1_fixed[] = {0x42, 0x47, 0x52, 0x73};
 		byte unusedarr[] = new byte[16*4];
@@ -110,22 +111,6 @@ public class BMPFormatter extends Formatter{
 			System.out.println("Nekim cudom uslo u obradu izuzetka");
 		}
 	}
-	/**
-	 * Konvertovanje niza od 4 bajta u int
-	 * @param b
-	 * @return
-	 */
-	private static int byteArrToInt(byte b[])
-	{
-		int broj = 0;
-		int stepen = 0;
-		for(int i = 0; i<b.length; i++)
-			{
-				broj = broj | (b[i] & 0xff) << stepen;
-				stepen+=8;
-			}
-		return broj;
-	}
 
 	
 	/**
@@ -164,6 +149,104 @@ public class BMPFormatter extends Formatter{
 	 * @param putanja
 	 */
 	public void sacuvaj(String putanja, Slika slika) {
+		BMPHeader header = new BMPHeader();
+		File f = new File(putanja);
+		try {
+			RandomAccessFile outputfile = new RandomAccessFile(f, "rw");
+			intToByteArr(slika.dohvSlojeve().get(0).getSirina(), header.width);
+			intToByteArr(slika.dohvSlojeve().get(0).getVisina(), header.height);
+			intToByteArr(122 + 4 * slika.dohvSlojeve().get(0).getSirina() * slika.dohvSlojeve().get(0).getVisina(), header.size_of_file);
+			intToByteArr(4 * slika.dohvSlojeve().get(0).getSirina() * slika.dohvSlojeve().get(0).getVisina(), header.size_of_bitmap_in_bytes);
+			upisiHeaderUFajl(outputfile, header);
+			
+			
+			// racunanje i upis piksela
+			double udeo,r,g,b,a, total_transparency;
+			int visina = slika.dohvSlojeve().get(0).getVisina(); // visina i sirina svih slojeva su jednake 
+			int sirina = slika.dohvSlojeve().get(0).getSirina();
+			for(int i = visina - 1; i >= 0; i--)
+				for(int j = 0; j < sirina; j++)
+				{
+					r = g = b = a = 0;
+					udeo = 1;
+					for(Layer l : slika.dohvSlojeve())
+					{
+						if(l.isAktivan())
+						{
+							Pixel sp = l.getPixelMatrix().get(i).get(j);
+							total_transparency = ((double)sp.getA() / 255) * ((double)l.getNeprozirnost() / 100);
+							r += sp.getR() * total_transparency * udeo;
+							g += sp.getG() * total_transparency * udeo;
+							b += sp.getB() * total_transparency * udeo;
+							udeo = udeo - udeo * total_transparency;
+						}
+					
+					}
+					udeo = 1 - udeo;
+					a = udeo * 255;
+					if (udeo != 0)
+					{
+						r = r / udeo;
+						g = g / udeo;
+						b = b / udeo;
+					}
+					else
+						r = b = g = 0;
+					BMPPixel p = new BMPPixel();
+					p.red = (byte)r;
+					p.green = (byte)g;
+					p.blue = (byte)b;
+					p.alpha = (byte)a;
+					outputfile.write(p.red);
+					outputfile.write(p.green);
+					outputfile.write(p.blue);
+					outputfile.write(p.alpha);
+				}
+		
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void upisiHeaderUFajl(RandomAccessFile outputfile, BMPHeader header)
+	{
+		BMP32addition addition = new BMP32addition();
+		try {
+			outputfile.write(header.id_field);
+			outputfile.write(header.size_of_file);
+			outputfile.write(header.unused1);
+			outputfile.write(header.unused2);
+			outputfile.write(header.start_of_pixels_array);
+			outputfile.write(header.bytes_in_DIB_header);
+			outputfile.write(header.width);
+			outputfile.write(header.height);
+			outputfile.write(header.number_of_color_planes);
+			outputfile.write(header.number_of_bits_per_pixel);
+			outputfile.write(header.BI_RGB);
+			outputfile.write(header.size_of_bitmap_in_bytes);
+			outputfile.write(header.unused3_fixed);
+			outputfile.write(header.unused4_fixed);
+			outputfile.write(header.unused5_fixed);
+			outputfile.write(header.unused6_fixed);
+			
+			// Upisi dodatak za 32bitne slike
+			
+			outputfile.write(addition.red_mask);
+			outputfile.write(addition.green_mask);
+			outputfile.write(addition.blue_mask);
+			outputfile.write(addition.alpha_mask);
+			outputfile.write(addition.unused1_fixed);
+			outputfile.write(addition.unusedarr);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		
 		
 	}
 	

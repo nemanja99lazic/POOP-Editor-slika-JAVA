@@ -16,6 +16,8 @@ import java.awt.Panel;
 import java.awt.Rectangle;
 import java.awt.Scrollbar;
 import java.awt.Stroke;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -33,6 +35,9 @@ import javax.swing.border.Border;
 import Formatter.BMPFormatter;
 import Formatter.Formatter;
 import Formatter.GNePostojiFajl;
+import Formatter.PAMFormatter;
+import Formatter.XMLFormatter;
+import greske.GNeodgovarajuciFormatFajla;
 import komponente.Layer;
 import komponente.Selection;
 import prozori.*;
@@ -61,6 +66,8 @@ public class Slika extends Frame{
 	private Vector<Rectangle> recVector;
 	private Rectangle rectangle;
 	private HashMap<String, Selection> selekcije;
+	private boolean imaAktivnihSelekcija;
+	private boolean eksportovana;
 	
 	/*public static Slika getInstance()
 	{
@@ -76,6 +83,8 @@ public class Slika extends Frame{
 	{
 		super("Slika");
 		formatter = null;
+		imaAktivnihSelekcija = false;
+		eksportovana = false;
 		slojevi = new Vector<Layer>();
 		recVector = new Vector<Rectangle>();
 		selekcije = new HashMap<String, Selection>();
@@ -126,6 +135,34 @@ public class Slika extends Frame{
 				e->{
 					//Sta se radi na klik na opciju Eksportovanje
 				});
+		
+		Menu sacuvaj = new Menu("Sacuvaj");
+		MenuItem sacuvajProjekat = new MenuItem("Sacuvaj projekat");
+		sacuvaj.add(sacuvajProjekat);
+		bar.add(sacuvaj);
+		
+		sacuvajProjekat.addActionListener(new ActionListener()
+				{
+
+					public void actionPerformed(ActionEvent e) {
+						new SacuvajProjekatDijalog(Slika.this);
+					}
+					
+				});
+		
+		Menu ucitaj = new Menu("Ucitaj");
+		MenuItem ucitajProjekat = new MenuItem("Ucitaj projekat");
+		ucitaj.add(ucitajProjekat);
+		bar.add(ucitaj);
+		
+		ucitajProjekat.addActionListener(new ActionListener()
+		{
+
+			public void actionPerformed(ActionEvent e) {
+				new UcitajProjekatDijalog(Slika.this);
+			}
+			
+		});
 	}
 	
 	public MestoZaSliku dohvCanvas()
@@ -138,10 +175,10 @@ public class Slika extends Frame{
 		return this.slojevi;
 	}
 	
-	private void test()
+	/*private void test()
 	{
 		this.dodajSloj("E:\\FAKS\\4. semestar\\POOP\\Projekat C++\\Projekat1\\Projekat1\\Resources\\Examples\\Shapes.bmp");	
-	}
+	}*/
 	
 	private void zatvaranjeNaX()
 	{
@@ -154,7 +191,7 @@ public class Slika extends Frame{
 	}
 	
 	private void konfigurisiGlavnoPlatno()
-	{                                 // OVDE JE PROBLEM
+	{                                 
 		glavniPanel = new Panel(new BorderLayout());
 		
 		slikaCanvas = new MestoZaSliku(this.slojevi);
@@ -211,8 +248,36 @@ public class Slika extends Frame{
 		
 		pocetniDijalog = new PocetniDijalog(this, "Putanja");
 		putanjaDoPrvogSloja = pocetniDijalog.dohvPutanju();
-
-		dodajSloj(putanjaDoPrvogSloja);
+		try {
+			Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanjaDoPrvogSloja);
+			switch(format)
+			{
+			case GRESKA:
+				throw new GNePostojiFajl();
+			case xml:
+				ucitajSacuvaniProjekat(putanjaDoPrvogSloja);
+			default:
+				dodajSloj(putanjaDoPrvogSloja);
+			}
+		} catch (GNePostojiFajl e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * Ucitava sacuvani projekat iz xml fajla
+	 * @throws GNePostojiFajl 
+	 */
+	public void ucitajSacuvaniProjekat(String putanja)
+	{
+		Formatter formater = new XMLFormatter(this);
+		try {
+			formater.ucitaj(putanja);
+		} catch (GNePostojiFajl e) {
+			//DODAJ DIJALOG ZA GRESKU
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public void dodajSloj(String putanja)
@@ -230,11 +295,11 @@ public class Slika extends Frame{
 			case bmp:
 				formater = new BMPFormatter();
 				break;
-			/*case pam:
+			case pam:
 				formater = new PAMFormatter();
 				break;
 			case xml:
-				throw new GNePostojiFajl();*/
+				throw new GNePostojiFajl();
 			}
 			if(formater != null)
 			{
@@ -323,15 +388,8 @@ public class Slika extends Frame{
 				*/
 				if(rectangle.width != 0 || rectangle.height != 0)
 				{	
-					Graphics2D g2d = (Graphics2D)slikaCanvas.getBufferedImage().getGraphics();
-					float dash1[] = {10.0f};
-					Stroke dashed = new BasicStroke(1.0f,
-			                BasicStroke.CAP_BUTT,
-			                BasicStroke.JOIN_MITER,
-			                10.0f, dash1, 0.0f);
-					g2d.setStroke(dashed);
-					g2d.setColor(Color.BLACK);
-					g2d.draw(rectangle);
+					
+					slikaCanvas.paintRectangleOnImage(rectangle);
 					
 					recVector.add(rectangle);
 					rectangle = null;
@@ -389,8 +447,23 @@ public class Slika extends Frame{
 				}	 break;
 			case KeyEvent.VK_ENTER :
 				{
-				   new DodajPravouganikeDijalog(Slika.this);
+				   DodajPravouganikeDijalog dijalogPravougaonici = new DodajPravouganikeDijalog(Slika.this);
+				   
+				   //Proveri da li ima aktivnih selekcija
+				   boolean imaAktivnih = false;
+				   for(Selection s : Slika.this.selekcije.values())
+				   {
+					   if(s.getActive())
+					   {
+						   imaAktivnih = true;
+						   break;
+					   }
+				   }
+				   Slika.this.imaAktivnihSelekcija = imaAktivnih;
+				   
 				   slikaCanvas.azuriraj();
+				   rectangle = null;
+				   recVector.clear();
 				   opcijeSelekcije.azuriraj();
 				} break;
 			}
@@ -409,6 +482,111 @@ public class Slika extends Frame{
 	public HashMap<String, Selection> dohvMapuSelekcija()
 	{
 		return this.selekcije;
+	}
+	
+	public void promeniAktivnostSelekcije(String imeSelekcije, boolean aktivnost)
+	{
+		Selection selekcija = selekcije.get(imeSelekcije);
+		
+		if(aktivnost == true)
+			{
+				selekcija.setToActive();
+				this.imaAktivnihSelekcija = true;
+			}
+		else
+			{
+				selekcija.setToInactive();
+				boolean imaAktivnih = false;
+				for(Selection s : this.dohvMapuSelekcija().values())
+				{
+					if(s.getActive())
+						{
+							imaAktivnih = true;
+							break;
+						}
+				}
+				imaAktivnihSelekcija = imaAktivnih;
+			}
+		slikaCanvas.azuriraj();
+	}
+	
+	public void izbrisiSelekciju(String imeSelekcije)
+	{
+		selekcije.remove(imeSelekcije);
+		slikaCanvas.azuriraj();
+	}
+	
+	/**
+	 * Moze da sacuva sliku u BMP ili PAM formatu
+	 * 	ili da sacuva projakat kao XML fajl
+	 * @param putanja
+	 */
+	public void sacuvaj(String putanja)
+	{
+		Formatter formater = null;
+		try {
+			Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanja);
+			switch(format)
+			{
+			case GRESKA:
+				throw new GNeodgovarajuciFormatFajla();
+			case bmp:
+				formater = new BMPFormatter();
+				break;
+			case pam:
+				formater = new PAMFormatter();
+				break;
+			case xml:
+				formater = new XMLFormatter(this);
+				break;
+			}
+			if(formater != null)
+			{
+				formater.sacuvaj(putanja, this);
+				this.eksportovana = true;
+			}
+		} catch (GNePostojiFajl | GNeodgovarajuciFormatFajla e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void postaviImaAktivnihSelekcija(boolean value)
+	{
+		this.imaAktivnihSelekcija = value;
+	}
+	
+	public void postaviMapuSelekcija(HashMap<String, Selection> mapa)
+	{
+		this.selekcije = mapa;
+	}
+	
+	public void reset()
+	{
+		formatter = null;
+		imaAktivnihSelekcija = false;
+		eksportovana = false;
+		slojevi = new Vector<Layer>();
+		recVector = new Vector<Rectangle>();
+		selekcije = new HashMap<String, Selection>();
+		azurirajSve();
+	}
+	
+	public void azurirajSve()
+	{
+		this.slikaCanvas.azuriraj();
+		this.opcijeSelekcije.azuriraj();
+		this.opcijeSlojevi.azuriraj();
+	}
+	
+	public boolean dohvImaAktivnihSelekcija()
+	{
+		return this.imaAktivnihSelekcija;
+	}
+	
+	public boolean dohvEksportovana()
+	{
+		return this.eksportovana;
 	}
 
 public static void main(String[] args)

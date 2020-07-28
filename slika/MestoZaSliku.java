@@ -107,6 +107,19 @@ public class MestoZaSliku extends Canvas {
 		g2d.dispose();
 	}
 	
+	public void paintRectangleOnImage(Rectangle rectangle)
+	{
+		Graphics2D g2d = (Graphics2D)this.getBufferedImage().getGraphics();
+		float dash1[] = {10.0f};
+		Stroke dashed = new BasicStroke(1.0f,
+                BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_MITER,
+                10.0f, dash1, 0.0f);
+		g2d.setStroke(dashed);
+		g2d.setColor(Color.BLACK);
+		g2d.draw(rectangle);
+	}
+	
 	public BufferedImage getBufferedImage()
 	{
 		return this.zaIscrtavanje;

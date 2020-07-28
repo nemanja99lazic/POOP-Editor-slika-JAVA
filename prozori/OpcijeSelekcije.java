@@ -12,7 +12,18 @@ import java.awt.List;
 import java.awt.Label;
 import java.awt.Choice;
 import java.awt.Panel;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import komponente.Selection;
 
 public class OpcijeSelekcije extends Dialog {
 
@@ -42,8 +53,16 @@ public class OpcijeSelekcije extends Dialog {
 	
 	private void zatvaranjeNaX()
 	{
-		owner.dohvCanvas().azuriraj();
-		setVisible(false);
+		this.addWindowListener(new WindowAdapter()
+		{
+
+			@Override
+			public void windowClosing(WindowEvent e) {
+				owner.dohvCanvas().azuriraj();
+				setVisible(false);
+			}
+			
+		});
 	}
 	
 	private void konfigurisi()
@@ -81,15 +100,117 @@ public class OpcijeSelekcije extends Dialog {
 	
 	private void dodajListenere()
 	{
-		if(radioPojedinacniPrikaz.getState())
+		radioPojedinacniPrikaz.addItemListener(new ItemListener()
 		{
+
+			public void itemStateChanged(ItemEvent e) {
+				if(radioPojedinacniPrikaz.getState() == true)
+				{
+					if(listaSelekcija.getSelectedIndexes().length == 0) // Ako nista nije izabrano
+						return;
+					
+					String imeIzabraneSelekcije = listaSelekcija.getSelectedItem();
+					owner.dohvCanvas().azuriraj(); // ponovo ucitaj sliku i iscrtaj je
+					for(Rectangle rec : owner.dohvMapuSelekcija().get(imeIzabraneSelekcije).getRectangleVector())
+					{
+						owner.dohvCanvas().paintRectangleOnImage(rec);
+					}
+				}
+			}
 			
-		}
+		});
+		
+		listaSelekcija.addItemListener(new ItemListener()
+		{
+			public void itemStateChanged(ItemEvent e)
+			{
+				if(radioPojedinacniPrikaz.getState() == true)
+				{
+					if(listaSelekcija.getSelectedIndexes().length == 0) // Ako nista nije izabrano
+						return;
+					
+					String imeIzabraneSelekcije = listaSelekcija.getSelectedItem();
+					owner.dohvCanvas().azuriraj(); // ponovo ucitaj sliku i iscrtaj je
+					for(Rectangle rec : owner.dohvMapuSelekcija().get(imeIzabraneSelekcije).getRectangleVector())
+					{
+						owner.dohvCanvas().paintRectangleOnImage(rec);
+					}
+				}
+			}
+		});
+		
+		radioPrikazSvihSelekcija.addItemListener(new ItemListener() 
+		{
+
+			public void itemStateChanged(ItemEvent e) {
+				if(radioPrikazSvihSelekcija.getState() == true)
+				{
+					owner.dohvCanvas().azuriraj();
+					
+					//Koristi stream kao na vezbama
+					owner.dohvMapuSelekcija().values().stream().forEach(selekcija->{
+						if(selekcija.getActive() == true)
+						{
+							for(Rectangle rec : selekcija.getRectangleVector())
+							{
+								owner.dohvCanvas().paintRectangleOnImage(rec);
+							}
+						}
+					});
+				}
+			}
+		});
+		
+		// Na pritisnuto dugme "Promeni"
+		dugmePromeniAktivnost.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				String izabranaSelekcija = padajucaListaAktivna.getSelectedItem();
+				String imeSelekcije = "";
+				String aktivnostString = "";
+				boolean novaAktivnost;
+				Pattern p = Pattern.compile("^(.*) - (.*)$");  //Pattern za npr "Selekcija 3 - NEAKTIVNA"
+				Matcher m = p.matcher(izabranaSelekcija);
+				if(m.matches())
+				{
+					imeSelekcije = m.group(1);
+					aktivnostString = m.group(2);
+				}
+				else
+					System.out.println("Ne nalazi"); // za pronalazenje greske
+				
+				if(aktivnostString.equals(new String("AKTIVNA")))
+					novaAktivnost = false;
+				else
+					novaAktivnost = true;
+				
+				owner.promeniAktivnostSelekcije(imeSelekcije, novaAktivnost);
+				azuriraj();
+			}
+			
+		});
+		
+		dugmeIzbrisi.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				String imeSelekcije = padajucaListaBrisanje.getSelectedItem();
+				owner.izbrisiSelekciju(imeSelekcije);
+				azuriraj();
+			}
+			
+		});
+		
+		
 	}
 	
 	/*
-	 * Kad prozor postane vidljiv, azurirati i glavnu sliku i na njoj prikazati izabrane selekcije
+	 * 1) Kad prozor postane vidljiv, azurirati i glavnu sliku i na njoj prikazati izabrane selekcije
 	 * - poziva odgovarajuce metode iz klase MestoZaSLiku
+	 * 2) Kad se promeni aktivnost sloju ili je neki sloj izbrisan
 	 */
 	public void azuriraj()
 	{

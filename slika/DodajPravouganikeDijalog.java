@@ -97,8 +97,9 @@ public class DodajPravouganikeDijalog extends Dialog{
 				if(radioDodajUPostojecu.getState() == true)
 				{
 					String imeSelekcije = padajucaListaSelekcije.getSelectedItem();
-					Vector<Rectangle> recVectorCopy = (Vector<Rectangle>)recVector.clone();
-					selekcije.put(imeSelekcije, new Selection(recVectorCopy, true));
+					for(Rectangle rec : recVector)
+						selekcije.get(imeSelekcije).getRectangleVector().add(rec);
+					
 				}
 				dispose();
 			}
