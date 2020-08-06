@@ -14,6 +14,7 @@ import java.awt.MenuBar;
 import java.awt.MenuItem;
 import java.awt.Panel;
 import java.awt.Rectangle;
+import java.awt.ScrollPane;
 import java.awt.Scrollbar;
 import java.awt.Stroke;
 import java.awt.event.ActionEvent;
@@ -48,14 +49,12 @@ public class Slika extends Frame{
 	 */
 	private PocetniDijalog pocetniDijalog;
 	private String putanjaDoPrvogSloja;
-	private Formatter formatter;
 	private MestoZaSliku slikaCanvas;
-	private Scrollbar horizontalni = null, vertikalni = null;
-	private Panel glavniPanel;
 	private OpcijeSlojevi opcijeSlojevi = null;
 	private OpcijeSelekcije opcijeSelekcije;
-	//private OpcijeOperacije opcijeOperacije
-	//private OpcijeEksportovanje opcijeEksportovanje
+	private OpcijeOperacije opcijeOperacije;
+	private OpcijeEksportovanje opcijeEksportovanje;
+	private ScrollPane scrollpane;
 	
 	/*
 	 NEGRAFICKE KOMPONENTE
@@ -82,7 +81,6 @@ public class Slika extends Frame{
 	public Slika()
 	{
 		super("Slika");
-		formatter = null;
 		imaAktivnihSelekcija = false;
 		eksportovana = false;
 		slojevi = new Vector<Layer>();
@@ -93,9 +91,8 @@ public class Slika extends Frame{
 		konfigurisiGlavnoPlatno();
 		kreirajPodprozoreDijaloge();
 		dodajMeni();
-		//konfigurisiPocetniDijalog(); // ODBLOKIRAJ!! MOGUCI PROBLEM - objekat Slike jos nije kreiran, a poslat kao parametar Dijalogu
+		konfigurisiPocetniDijalog();
 		setVisible(true);
-		//test();
 	}
 	
 	/**
@@ -126,14 +123,14 @@ public class Slika extends Frame{
 		menu.add(dialogOperacije);
 		dialogOperacije.addActionListener(
 				e->{
-					//Sta se radi na klik na opciju Operacije
+						opcijeOperacije.setVisible(true);
 				});
 		menu.addSeparator();
-		MenuItem opcijeEksportovanje = new MenuItem("Eksportovanje");
-		menu.add(opcijeEksportovanje);
-		opcijeEksportovanje.addActionListener(
+		MenuItem dialogEksportovanje = new MenuItem("Eksportovanje");
+		menu.add(dialogEksportovanje);
+		dialogEksportovanje.addActionListener(
 				e->{
-					//Sta se radi na klik na opciju Eksportovanje
+						opcijeEksportovanje.setVisible(true);
 				});
 		
 		Menu sacuvaj = new Menu("Sacuvaj");
@@ -175,50 +172,31 @@ public class Slika extends Frame{
 		return this.slojevi;
 	}
 	
-	/*private void test()
-	{
-		this.dodajSloj("E:\\FAKS\\4. semestar\\POOP\\Projekat C++\\Projekat1\\Projekat1\\Resources\\Examples\\Shapes.bmp");	
-	}*/
-	
 	private void zatvaranjeNaX()
 	{
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				dispose();
+				if(eksportovana == false)
+				{
+					new IzlazDijalog(Slika.this, opcijeEksportovanje);
+				}
+				else
+					dispose();
 			}
 		});
 	}
 	
 	private void konfigurisiGlavnoPlatno()
 	{                                 
-		glavniPanel = new Panel(new BorderLayout());
+		scrollpane = new ScrollPane(ScrollPane.SCROLLBARS_ALWAYS);
 		
 		slikaCanvas = new MestoZaSliku(this.slojevi);
 		
-		glavniPanel.add(slikaCanvas, BorderLayout.CENTER);
+		scrollpane.add(slikaCanvas);
 		this.dodajListenereNaSlikaCanvas();
 		
-		horizontalni = new Scrollbar(Scrollbar.HORIZONTAL);
-		vertikalni = new Scrollbar(Scrollbar.VERTICAL);
-		glavniPanel.add(horizontalni, BorderLayout.SOUTH);
-		glavniPanel.add(vertikalni, BorderLayout.EAST);
-		
-		horizontalni.addAdjustmentListener(e->{
-			int x = e.getValue();
-			int y = vertikalni.getValue();
-			if(x < slikaCanvas.dohvatiSirinuSlike())
-				slikaCanvas.pomeriSliku(x, y);
-		});
-		
-		vertikalni.addAdjustmentListener(e->{
-			int y = e.getValue();
-			int x = horizontalni.getValue();
-			if(y < slikaCanvas.dohvatiVisinuSlike())
-				slikaCanvas.pomeriSliku(x, y);
-		});
-		
-		add(glavniPanel);
+		add(scrollpane);
 	}
 
 	private void azurirajSlojevePosleDodavanja()
@@ -247,22 +225,34 @@ public class Slika extends Frame{
 	{
 		
 		pocetniDijalog = new PocetniDijalog(this, "Putanja");
-		putanjaDoPrvogSloja = pocetniDijalog.dohvPutanju();
-		try {
-			Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanjaDoPrvogSloja);
-			switch(format)
-			{
-			case GRESKA:
-				throw new GNePostojiFajl();
-			case xml:
-				ucitajSacuvaniProjekat(putanjaDoPrvogSloja);
-			default:
-				dodajSloj(putanjaDoPrvogSloja);
+		if(pocetniDijalog.getStanje())
+		{	putanjaDoPrvogSloja = pocetniDijalog.dohvPutanju();
+			try {
+				Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanjaDoPrvogSloja);
+				switch(format)
+				{
+				case GRESKA:
+					throw new GNePostojiFajl();
+				case xml:
+				{   DijalogObrada obrada = new DijalogObrada(this);
+					ucitajSacuvaniProjekat(putanjaDoPrvogSloja);
+					obrada.dispose();
+				}
+				default:
+				{
+					DijalogObrada obrada = new DijalogObrada(this);
+					dodajSloj(putanjaDoPrvogSloja);
+					obrada.dispose();
+				}
+				}
+			} catch (GNePostojiFajl e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (GNePostojiFajl e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+		else
+			return;
+		
 	}
 	/**
 	 * Ucitava sacuvani projekat iz xml fajla
@@ -312,8 +302,14 @@ public class Slika extends Frame{
 					slojevi.add(0, formater.getLayer());
 					azurirajSlojevePosleDodavanja();
 				}
+				
+				slikaCanvas.setSize(slojevi.get(0).getSirina(), slojevi.get(0).getVisina());
 				slikaCanvas.azuriraj();
 				opcijeSlojevi.azuriraj();
+				
+				
+				/*horizontalni = new Scrollbar(Scrollbar.HORIZONTAL, 0, slikaCanvas.getWidth(), 0, slojevi.get(0).getSirina());
+				vertikalni = new Scrollbar(Scrollbar.VERTICAL, 0, slikaCanvas.getHeight(), 0, slojevi.get(0).getVisina());*/
 			}
 		}
 		catch(GNePostojiFajl e)
@@ -341,12 +337,14 @@ public class Slika extends Frame{
 	}
 	
 	/**
-	 * Helper
+	 * Helper za kreiranje Dijaloga sa Opcijama
 	 */
 	private void kreirajPodprozoreDijaloge()
 	{
 		this.opcijeSlojevi = new OpcijeSlojevi(this);
 		this.opcijeSelekcije = new OpcijeSelekcije(this);
+		this.opcijeOperacije = new OpcijeOperacije(this);
+		this.opcijeEksportovanje = new OpcijeEksportovanje(this);
 	}
 	
 	public void promeniAktivnostSloju(int ind, boolean novaAktivnost)
@@ -513,6 +511,18 @@ public class Slika extends Frame{
 	public void izbrisiSelekciju(String imeSelekcije)
 	{
 		selekcije.remove(imeSelekcije);
+		
+		boolean imaAktivnih = false;
+		for(Selection s : this.dohvMapuSelekcija().values())
+		{
+			if(s.getActive())
+				{
+					imaAktivnih = true;
+					break;
+				}
+		}
+		imaAktivnihSelekcija = imaAktivnih;
+		
 		slikaCanvas.azuriraj();
 	}
 	
@@ -563,7 +573,6 @@ public class Slika extends Frame{
 	
 	public void reset()
 	{
-		formatter = null;
 		imaAktivnihSelekcija = false;
 		eksportovana = false;
 		slojevi = new Vector<Layer>();
@@ -574,9 +583,9 @@ public class Slika extends Frame{
 	
 	public void azurirajSve()
 	{
-		this.slikaCanvas.azuriraj();
 		this.opcijeSelekcije.azuriraj();
 		this.opcijeSlojevi.azuriraj();
+		this.slikaCanvas.azuriraj();
 	}
 	
 	public boolean dohvImaAktivnihSelekcija()
@@ -587,6 +596,11 @@ public class Slika extends Frame{
 	public boolean dohvEksportovana()
 	{
 		return this.eksportovana;
+	}
+	
+	public void postaviEksportovana(boolean eksportovana)
+	{
+		this.eksportovana = eksportovana;
 	}
 
 public static void main(String[] args)

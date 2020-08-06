@@ -19,12 +19,15 @@ public class PocetniDijalog extends Dialog {
 	private TextField putanjaTF;
 	private String putanja;
 	private Panel panel;
+	private boolean stanje;
 	
 	public PocetniDijalog(Frame owner, String naslov) {
 		super(owner, naslov, true);
 		setSize(400,80);
+		stanje = true;
 		zatvaranjeNaX();
 		konfigurisi();
+		setLocationRelativeTo(null);
 		setVisible(true);
 	}
 	
@@ -33,9 +36,15 @@ public class PocetniDijalog extends Dialog {
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
+				stanje = false;
 				dispose();
 			}
 		});
+	}
+	
+	public boolean getStanje()
+	{
+		return stanje;
 	}
 	
 	private void konfigurisi()

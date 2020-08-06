@@ -2,10 +2,13 @@ package Formatter;
 
 import java.awt.Rectangle;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -22,6 +25,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import greske.GNeodgovarajuciFormatFajla;
 import komponente.Layer;
 import komponente.Pixel;
 import komponente.Selection;
@@ -33,6 +37,9 @@ import slika.Slika;
 
 public class XMLFormatter extends Formatter{
 
+	private static final String ext = "_layer";
+	private static final String format = ".svdlayer";
+	
 	public XMLFormatter(Slika slika)
 	{
 		super();
@@ -48,7 +55,7 @@ public class XMLFormatter extends Formatter{
 			DocumentBuilder dBuild = dbFact.newDocumentBuilder();
 			Document doc = dBuild.parse(xmlDoc);
 			
-			slika.azurirajSve();
+			//slika.reset(); // Napravi prazan projekat
 			
 			//doc.getDoctype().normalize();
 			Element root = doc.getDocumentElement(); // vraca root "Slika"
@@ -96,6 +103,7 @@ public class XMLFormatter extends Formatter{
 			slika.postaviMapuSelekcija(mapaSelekcija);
 			
 			//Ostalo ucitavanje slojeva
+			slika.dohvSlojeve().clear();
 			NodeList listLayers = ((Element)root.getElementsByTagName("Layers").item(0)).getElementsByTagName("Layer");
 			for(int i = 0; i < listLayers.getLength(); i++)
 			{
@@ -210,7 +218,74 @@ public class XMLFormatter extends Formatter{
 			
 			Element nodeLayers = doc.createElement("Layers");
 			
-			//DOPUNI
+			int redBrSloja = 0;
+			for(Layer layer : this.slika.dohvSlojeve())
+			{
+				Element nodeLayer = doc.createElement("Layer");
+				
+				int lVisina, lSirina, lAktivan, lNeprozirnost;
+				String lPutanja = " ";
+				
+				lVisina = layer.getVisina();
+				lSirina = layer.getSirina();
+				lAktivan = layer.isAktivan() ? 1 : 0;
+				lNeprozirnost = layer.getNeprozirnost();
+			
+				Element nodeWidth = doc.createElement("Width");
+				nodeWidth.appendChild(doc.createTextNode(Integer.toString(lSirina)));
+				nodeLayer.appendChild(nodeWidth);
+				
+				Element nodeHeight = doc.createElement("Height");
+				nodeHeight.appendChild(doc.createTextNode(Integer.toString(lVisina)));
+				nodeLayer.appendChild(nodeHeight);
+				
+				Element nodeIsActive = doc.createElement("IsActive");
+				nodeIsActive.appendChild(doc.createTextNode(Integer.toString(lAktivan)));
+				nodeLayer.appendChild(nodeIsActive);
+				
+				Element nodeOpacity = doc.createElement("Opacity");
+				nodeOpacity.appendChild(doc.createTextNode(Integer.toString(lNeprozirnost)));
+				nodeLayer.appendChild(nodeOpacity);
+				
+				Element nodePath = doc.createElement("Path");
+				nodePath.appendChild(doc.createTextNode(lPutanja));
+				nodeLayer.appendChild(nodePath);
+				
+				Element nodePixelList = doc.createElement("PixelList");
+				
+				Pattern rx = Pattern.compile("(.*)\\.xml");
+				Matcher m = rx.matcher(putanja);
+				String template_putanja_svd = "";
+				String putanjaMatricePiksela;
+				if(m.matches())
+					template_putanja_svd = m.group(1);
+				// Nece biti else, jer ce greska, ako postoji, biti uhvacena pre poziva metode
+				
+				template_putanja_svd += XMLFormatter.ext;
+				putanjaMatricePiksela = template_putanja_svd + redBrSloja + XMLFormatter.format;
+				redBrSloja++;
+				
+				RandomAccessFile file = new RandomAccessFile(new File(putanjaMatricePiksela), "rw");
+				for(int i = 0; i < lVisina; i++)
+					for(int j = 0; j < lSirina; j++)
+					{
+						Pixel px = layer.getPixelMatrix().get(i).get(j);
+						file.write(px.getR() & 0xff);
+						file.write(px.getG() & 0xff);
+						file.write(px.getB() & 0xff);
+						file.write(px.getA() & 0xff);
+						
+					}
+				
+				Element nodePathToSavedLayer = doc.createElement("PathToSavedLayer");
+				nodePathToSavedLayer.appendChild(doc.createTextNode(putanjaMatricePiksela));
+				
+				nodePixelList.appendChild(nodePathToSavedLayer);
+
+				nodeLayer.appendChild(nodePixelList);
+			
+				nodeLayers.appendChild(nodeLayer);
+			}
 		
 			root.appendChild(nodeLayers);
 			
@@ -224,7 +299,7 @@ public class XMLFormatter extends Formatter{
 			transformer.transform(source, result);
 			
 			
-		} catch (ParserConfigurationException | TransformerException e) {
+		} catch (ParserConfigurationException | TransformerException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

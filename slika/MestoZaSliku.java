@@ -27,9 +27,11 @@ import komponente.Selection;
 public class MestoZaSliku extends Canvas {
 
 	private Vector<Layer> slojevi;
-	private Scrollbar horizontalni, vertikalni;
+	//private Scrollbar horizontalni, vertikalni;
 	private BufferedImage zaIscrtavanje = null;
 	private boolean crtajPravougaonik = false;
+	private boolean pomeri = false;
+	private int xGore, yGore; // koriste se kod pomeranja slike preko Scrollbarova
 	
 	// pre ovoga treba pozvati metodu Layer.dopuniProvidnimPikselima
 	public void azuriraj()
@@ -141,6 +143,7 @@ public class MestoZaSliku extends Canvas {
 	public void pomeriSliku(int xGore, int yGore)
 	{
 		Graphics g = this.getGraphics();
+		g.clearRect(0,  0, this.getWidth(), this.getHeight());
 		g.drawImage(zaIscrtavanje, -xGore, -yGore, null);
 	}
 	

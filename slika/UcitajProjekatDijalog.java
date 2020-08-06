@@ -46,6 +46,7 @@ public class UcitajProjekatDijalog extends Dialog {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				DijalogObrada obrada = new DijalogObrada(owner);
 				try {
 				String putanja = fieldPutanja.getText();
 				Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanja);
@@ -61,6 +62,11 @@ public class UcitajProjekatDijalog extends Dialog {
 				{
 					//DODAJ DIJALOG ZA GRESKU!!!!!!!!!!!!!!!!!!!!!!!
 					e1.printStackTrace();
+				}
+				finally
+				{
+					obrada.dispose();
+					dispose();
 				}
 			}
 				
