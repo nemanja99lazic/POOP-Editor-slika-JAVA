@@ -48,7 +48,7 @@ public class OpcijeSelekcije extends Dialog {
 		zatvaranjeNaX();
 		konfigurisi();
 		dodajListenere();
-		setVisible(true);
+		setVisible(false);
 	}
 	
 	private void zatvaranjeNaX()

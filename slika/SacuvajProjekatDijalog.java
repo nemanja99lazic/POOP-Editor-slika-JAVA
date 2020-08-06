@@ -45,6 +45,7 @@ public class SacuvajProjekatDijalog extends Dialog {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				DijalogObrada obrada = new DijalogObrada(owner);
 				try {
 				String putanja = fieldPutanja.getText();
 				Formatter.MoguciFormati format = Formatter.nadjiFormatFajla(putanja);
@@ -52,6 +53,7 @@ public class SacuvajProjekatDijalog extends Dialog {
 				{
 					Formatter formater = new XMLFormatter(SacuvajProjekatDijalog.this.owner);
 					formater.sacuvaj(putanja, (Slika)owner);
+					SacuvajProjekatDijalog.this.owner.postaviEksportovana(true);
 				}
 				else
 					throw new GNeodgovarajuciFormatFajla();
@@ -60,6 +62,11 @@ public class SacuvajProjekatDijalog extends Dialog {
 				{
 					//DODAJ DIJALOG ZA GRESKU!!!!!!!!!!!!!!!!!!!!!!!
 					e2.printStackTrace();
+				}
+				finally
+				{
+					obrada.dispose();
+					dispose();
 				}
 			}
 			

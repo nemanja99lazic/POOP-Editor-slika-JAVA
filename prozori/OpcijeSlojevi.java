@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 import java.awt.List;
 
 import komponente.Layer;
+import slika.DijalogObrada;
 import slika.Slika;
 
 public class OpcijeSlojevi extends Dialog{
@@ -53,7 +54,7 @@ public class OpcijeSlojevi extends Dialog{
 		setSize(218, 307);
 		zatvaranjeNaX();
 		konfigurisi();
-		setVisible(true); // promeniti na false, stavljeno na true za potrebe testiranja
+		setVisible(false);
 	}
 	
 	/**
@@ -91,7 +92,7 @@ public class OpcijeSlojevi extends Dialog{
 		textfieldPutanja = new TextField("Putanja do sloja");
 		dugmeDodajSloj = new Button("Dodaj");
 		
-		//Dodavanje komponenata na prozor:
+		//Dodavanje komponenti na prozor:
 		this.setLayout(new GridLayout(8, 1));
 		this.add(panelAktivan);
 		this.add(labelaBrisanje);
@@ -107,12 +108,14 @@ public class OpcijeSlojevi extends Dialog{
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				DijalogObrada obrada = new DijalogObrada(owner);
 				int ind = listaAktivan.getSelectedIndex();
 				boolean staraAktivnost = owner.dohvSlojeve().get(ind).isAktivan();
 				String dodatak = !staraAktivnost == true ? "AKTIVAN" : "NEAKTIVAN";
 				owner.promeniAktivnostSloju(ind, !staraAktivnost);
 				listaAktivan.remove(ind);
 				listaAktivan.add("Layer" + (ind + 1) + " - " + dodatak, ind);
+				obrada.dispose();
 			}
 			
 		});
@@ -121,10 +124,11 @@ public class OpcijeSlojevi extends Dialog{
 		dugmeIzbrisi.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				
+				DijalogObrada obrada = new DijalogObrada(owner);
 				int ind = padajucaListaBrisanje.getSelectedIndex();
 				owner.izbrisiSloj(ind);
 				azuriraj();
+				obrada.dispose();
 			}
 		});
 		
@@ -133,10 +137,13 @@ public class OpcijeSlojevi extends Dialog{
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				
+				DijalogObrada obrada = new DijalogObrada(owner);
 				int novaProzirnost = Integer.parseInt(textfieldPromeniProzirnost.getText());
 				int ind = padajucaListaProzirnost.getSelectedIndex();
 				owner.promeniProzirnostSloju(ind, novaProzirnost);
 				//Nema potrebe za azuriranjem ovog prozora, jer se nista nece promeniti na grafici
+				obrada.dispose();
 			}
 			
 		});
@@ -146,10 +153,12 @@ public class OpcijeSlojevi extends Dialog{
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				DijalogObrada obrada = new DijalogObrada(owner);
 				String putanja = textfieldPutanja.getText();
 				if(!putanja.equals(new String("Putanja do sloja")))
 					owner.dodajSloj(putanja);
 				// ne mora da se azurira, jer se vec azuriralo u objektu slike
+				obrada.dispose();
 			}
 			
 		});
