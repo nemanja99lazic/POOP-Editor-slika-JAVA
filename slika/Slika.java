@@ -68,7 +68,10 @@ public class Slika extends Frame{
 	private boolean imaAktivnihSelekcija;
 	private boolean eksportovana;
 	
-	/*public static Slika getInstance()
+	//Instanca slike
+	private static Slika instance = null;
+	
+	public static Slika getInstance()
 	{
 		if(instance == null)
 		{
@@ -76,9 +79,9 @@ public class Slika extends Frame{
 		}
 		return instance;
 		
-	}*/
+	}
 	
-	public Slika()
+	private Slika()
 	{
 		super("Slika");
 		imaAktivnihSelekcija = false;
@@ -246,8 +249,7 @@ public class Slika extends Frame{
 				}
 				}
 			} catch (GNePostojiFajl e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				e.new NePostojiFajlDialog(this);
 			}
 		}
 		else
@@ -314,8 +316,7 @@ public class Slika extends Frame{
 		}
 		catch(GNePostojiFajl e)
 		{
-			System.out.println("Fajl ne postoji, UBACI DIJALOG KOJI CE DA ISKOCI ODAVDE");
-			return;
+			e.new NePostojiFajlDialog(this);
 		}
 	}
 	

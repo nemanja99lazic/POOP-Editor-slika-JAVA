@@ -17,8 +17,7 @@ import slika.*;
 public class Main {
 
 	public static void main(String[] args) {
-		Slika slika = new Slika();
+		Slika slika = Slika.getInstance();
 	}
-	
 	
 }

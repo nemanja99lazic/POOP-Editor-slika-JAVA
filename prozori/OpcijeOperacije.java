@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import Formatter.Formatter;
 import Formatter.GNePostojiFajl;
 import Formatter.XMLFormatter;
+import Formatter.GNePostojiFajl.NePostojiFajlDialog;
 
 
 public class OpcijeOperacije extends Dialog {
@@ -188,6 +189,7 @@ public class OpcijeOperacije extends Dialog {
 				}
 				catch(GNePostojiFajl greska)
 				{	
+					greska.new NePostojiFajlDialog(Slika.getInstance());
 				}
 			
 			}
